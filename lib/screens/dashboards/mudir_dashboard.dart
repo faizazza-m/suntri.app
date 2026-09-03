@@ -4,6 +4,7 @@ import '../login_screen.dart';
 import 'admin_dashboard.dart'; // To access globalStateInstance
 import '../../widgets/suntri_header.dart';
 import '../../constants/colors.dart';
+import '../../services/update_checker.dart';
 
 class MudirDashboard extends StatefulWidget {
   const MudirDashboard({super.key});
@@ -16,6 +17,14 @@ class _MudirDashboardState extends State<MudirDashboard> {
   int _currentTabIndex = 0;
   int _laporanSubTabIndex = 0;
   String _laporanSearchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateChecker.checkForUpdate(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

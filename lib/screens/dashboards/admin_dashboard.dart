@@ -10,6 +10,7 @@ import '../modules/asrama_screen.dart';
 import '../modules/keuangan_screen.dart';
 import '../modules/perizinan_screen.dart';
 import '../modules/kesehatan_screen.dart';
+import '../../services/update_checker.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -32,6 +33,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // Let's check how we can do it. A global variable: final appState = AppState(); is very clean and standard!
   // Let's do that! Let's look at app_state.dart first.
   
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateChecker.checkForUpdate(context);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;

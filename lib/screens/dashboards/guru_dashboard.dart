@@ -8,6 +8,7 @@ import 'dart:ui';
 import '../../widgets/expandable_text.dart';
 import '../../widgets/suntri_header.dart';
 import '../../services/notification_service.dart';
+import '../../services/update_checker.dart';
 
 class GuruDashboard extends StatefulWidget {
   const GuruDashboard({super.key});
@@ -45,6 +46,14 @@ class _GuruDashboardState extends State<GuruDashboard> {
     final dayName = days[now.weekday % 7];
     final monthName = months[now.month - 1];
     return '$dayName, ${now.day} $monthName ${now.year}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateChecker.checkForUpdate(context);
+    });
   }
 
   @override

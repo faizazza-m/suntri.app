@@ -2,8 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../login_screen.dart';
-import 'admin_dashboard.dart'; // To access globalStateInstance
+import 'admin_dashboard.dart';
 import '../../widgets/suntri_header.dart';
+import '../../services/update_checker.dart';
 
 class WaliDashboard extends StatefulWidget {
   const WaliDashboard({super.key});
@@ -55,6 +56,14 @@ class _WaliDashboardState extends State<WaliDashboard> {
       ]
     }
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateChecker.checkForUpdate(context);
+    });
+  }
 
   @override
   void dispose() {
