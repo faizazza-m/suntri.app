@@ -148,8 +148,10 @@ class UpdateChecker {
           ElevatedButton.icon(
             onPressed: () async {
               final uri = Uri.parse(downloadUrl);
-              if (await canLaunchUrl(uri)) {
+              try {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (e) {
+                debugPrint('Could not launch update url: $e');
               }
             },
             icon: const Icon(Icons.download_rounded, size: 16),
