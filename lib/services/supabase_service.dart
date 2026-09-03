@@ -30,9 +30,10 @@ import 'package:bcrypt/bcrypt.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-const String _supabaseUrl = 'https://ncwafymkpxogbjzcpoya.supabase.co';
-const String _supabaseAnonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jd2FmeW1rcHhvZ2JqemNwb3lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMzQ1MTgsImV4cCI6MjEwMTkxMDUxOH0.lPZkCRmrAXV5FuRw0b-j_uJLw-2Hx6mLSFOGZ4oq4SI';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+String get _supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+String get _supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
 // Role ID → App Role name mapping (from Supabase roles table)
 const Map<int, String> _roleMap = {

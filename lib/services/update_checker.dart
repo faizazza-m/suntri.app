@@ -11,30 +11,50 @@ class UpdateChecker {
   static const int currentBuild = 1;
   // ==========================================
 
-  // ← Ganti dengan URL Railway kamu
-  static const String _baseUrl = 'https://suntri-production.up.railway.app';
-  static const String _versionEndpoint = '$_baseUrl/api/mobile/app-version';
+  // ← Endpoint GitHub Repository Releases
+  static const String _githubRepo = 'faizazza-m/suntri.app';
+  static const String _versionEndpoint = 'https://api.github.com/repos/$_githubRepo/releases/latest';
 
-  /// Cek versi terbaru dari server.
-  /// Tampilkan dialog update jika ada versi baru.
+  /// Cek versi terbaru dari GitHub Releases.
+  /// Tampilkan dialog update jika ada versi baru (berdasarkan tag_name).
   static Future<void> checkForUpdate(BuildContext context) async {
     try {
       final response = await http
           .get(Uri.parse(_versionEndpoint))
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) return;
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final String latestVersion = data['version'] ?? '1.0.0';
-      final int latestBuild = data['build'] as int? ?? 1;
-      final String downloadUrl = data['download_url'] ?? '';
-      final String notes = data['notes'] ?? '';
-      final bool forceUpdate = data['force'] == true;
+      
+      // Ambil tag_name dari GitHub (contoh: "v1.0.1" atau "1.0.1")
+      String latestVersion = data['tag_name'] ?? '1.0.0';
+      latestVersion = latestVersion.replaceAll(RegExp(r'[^0-9.]'), ''); // bersihkan huruf 'v'
 
-      // Tidak perlu update
-      if (latestBuild <= currentBuild) return;
-      if (downloadUrl.isEmpty) return;
+      final String notes = data['body'] ?? 'Pembaruan bug dan optimalisasi sistem.';
+      
+      // Cari link download APK dari Assets
+      String downloadUrl = '';
+      if (data['assets'] != null && (data['assets'] as List).isNotEmpty) {
+        final assets = data['assets'] as List;
+        for (var asset in assets) {
+          final url = asset['browser_download_url']?.toString() ?? '';
+          if (url.endsWith('.apk')) {
+            downloadUrl = url;
+            break;
+          }
+        }
+        if (downloadUrl.isEmpty) {
+          downloadUrl = assets[0]['browser_download_url'] ?? '';
+        }
+      }
+
+      if (downloadUrl.isEmpty) {
+        downloadUrl = data['html_url'] ?? ''; // fallback ke halaman rilis github
+      }
+
+      // Bandingkan versi
+      if (!_isNewer(latestVersion, currentVersion)) return;
       if (!context.mounted) return;
 
       _showUpdateDialog(
@@ -43,12 +63,28 @@ class UpdateChecker {
         latestVersion: latestVersion,
         downloadUrl: downloadUrl,
         notes: notes,
-        force: forceUpdate,
+        force: false, // Bebas kalau dari GitHub
       );
     } catch (e) {
-      // Gagal cek update — lanjut saja, tidak ganggu user
-      debugPrint('UpdateChecker: $e');
+      debugPrint('UpdateChecker GitHub: $e');
     }
+  }
+
+  // Fungsi utilitas untuk membandingkan semantik versi (contoh: 1.0.1 > 1.0.0)
+  static bool _isNewer(String latest, String current) {
+    try {
+      final l = latest.split('.');
+      final c = current.split('.');
+      final length = l.length > c.length ? l.length : c.length;
+      
+      for (int i = 0; i < length; i++) {
+        final lVal = i < l.length ? int.tryParse(l[i]) ?? 0 : 0;
+        final cVal = i < c.length ? int.tryParse(c[i]) ?? 0 : 0;
+        if (lVal > cVal) return true;
+        if (lVal < cVal) return false;
+      }
+    } catch (_) {}
+    return false;
   }
 
   static void _showUpdateDialog(
