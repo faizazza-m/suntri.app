@@ -7,8 +7,8 @@ class UpdateChecker {
   // ==========================================
   // ↓ UPDATE INI SETIAP RILIS BARU ↓
   // ==========================================
-  static const String currentVersion = '1.0.0';
-  static const int currentBuild = 1;
+  static const String currentVersion = '1.0.1';
+  static const int currentBuild = 2;
   // ==========================================
 
   // ← Endpoint GitHub Repository Releases
