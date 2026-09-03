@@ -788,6 +788,11 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('currentUser');
     await prefs.remove('activeRole');
+    
+    // Batalkan semua jadwal notifikasi agar tidak nyasar ke akun/role lain
+    await NotificationService.cancelAllGuruReminders();
+    await NotificationService.cancelAllMusyrifReminders();
+    
     notifyListeners();
   }
 

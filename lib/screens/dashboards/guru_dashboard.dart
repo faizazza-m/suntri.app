@@ -85,6 +85,7 @@ class _GuruDashboardState extends State<GuruDashboard> {
         final guruId = user?['id']?.toString() ?? '';
         if (mySchedules.isNotEmpty && guruId.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            NotificationService.cancelAllMusyrifReminders(); // Pastikan bersih dari role musyrif
             NotificationService.scheduleGuruReminders(mySchedules, guruId);
           });
         }

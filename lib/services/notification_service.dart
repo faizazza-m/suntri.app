@@ -189,14 +189,7 @@ class NotificationService {
 
     for (final weekday in weekdays) {
       DateTime notifDate = _nextOccurrence(now.toLocal(), weekday);
-      DateTime scheduledDT = DateTime(notifDate.year, notifDate.month, notifDate.day, 11, 0);
-
-      if (scheduledDT.isBefore(now.toLocal())) {
-        scheduledDT = scheduledDT.add(const Duration(days: 7));
-      }
-
-      final tzScheduled = tz.TZDateTime.from(scheduledDT, tz.local);
-
+      
       const androidDetails = AndroidNotificationDetails(
         'musyrif_reminder_channel',
         'Pengingat Absensi Musyrif',
@@ -207,48 +200,65 @@ class NotificationService {
         color: Color(0xFF107B5C),
       );
 
+      // 1. Notifikasi 06:00 WIB
+      DateTime scheduledDT1 = DateTime(notifDate.year, notifDate.month, notifDate.day, 6, 0);
+      if (scheduledDT1.isBefore(now.toLocal())) {
+        scheduledDT1 = scheduledDT1.add(const Duration(days: 7));
+      }
       try {
         await _plugin.zonedSchedule(
-          notifId,
-          '📋 Jangan Lupa Absen Browhhh',
-          'Waktunya Kalian isi absensi harian halaqoh di sistem nya yeee, kalo ga nanti kenapa - napa loohh.',
-          tzScheduled,
+          notifId++,
+          '☀️ Selamat Pagi paraa Musyrif!',
+          'Awali hari dengan bismillah, semangat mendampingi para santri MTRQ hari ini!',
+          tz.TZDateTime.from(scheduledDT1, tz.local),
           const NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
       } catch (e) {
-        debugPrint('Gagal menjadwalkan notifikasi musyrif 1: $e');
+        debugPrint('Gagal menjadwalkan notif musyrif pagi: $e');
       }
 
-      debugPrint('Scheduled musyrif notif #$notifId at $tzScheduled');
-      notifId++;
-
-      // Notifikasi kedua di jam 13:30 (Peringatan Terakhir)
-      DateTime scheduledDT2 = DateTime(notifDate.year, notifDate.month, notifDate.day, 13, 30);
+      // 2. Notifikasi 10:00 WIB
+      DateTime scheduledDT2 = DateTime(notifDate.year, notifDate.month, notifDate.day, 10, 0);
       if (scheduledDT2.isBefore(now.toLocal())) {
         scheduledDT2 = scheduledDT2.add(const Duration(days: 7));
       }
-      final tzScheduled2 = tz.TZDateTime.from(scheduledDT2, tz.local);
-
       try {
         await _plugin.zonedSchedule(
-          notifId,
-          '🚨 Terakhir Absensi nih!',
-          'Batas waktu ngisi absensi halaqoh hampir habis nih, pastikan kamu sudah diisi semua sekarang juga ya!',
-          tzScheduled2,
+          notifId++,
+          '📖 Waktu Halaqoh Pertama',
+          'Halaqoh sudah dimulai, jangan lupa untuk mencatat absensi dan setoran santri.',
+          tz.TZDateTime.from(scheduledDT2, tz.local),
           const NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
       } catch (e) {
-        debugPrint('Gagal menjadwalkan notifikasi musyrif 2: $e');
+        debugPrint('Gagal menjadwalkan notif musyrif siang 1: $e');
       }
 
-      debugPrint('Scheduled musyrif notif #$notifId at $tzScheduled2');
-      notifId++;
+      // 3. Notifikasi 13:00 WIB
+      DateTime scheduledDT3 = DateTime(notifDate.year, notifDate.month, notifDate.day, 13, 0);
+      if (scheduledDT3.isBefore(now.toLocal())) {
+        scheduledDT3 = scheduledDT3.add(const Duration(days: 7));
+      }
+      try {
+        await _plugin.zonedSchedule(
+          notifId++,
+          '✅ Halaqoh Terakhir',
+          'Waktunya halaqoh terakhir hari ini! Pastikan semua data setoran dan absensi sudah lengkap, jangan lebih dari abis ashar yakk.',
+          tz.TZDateTime.from(scheduledDT3, tz.local),
+          const NotificationDetails(android: androidDetails),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
+      } catch (e) {
+        debugPrint('Gagal menjadwalkan notif musyrif siang 2: $e');
+      }
     }
   }
 

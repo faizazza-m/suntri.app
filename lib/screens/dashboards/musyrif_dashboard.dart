@@ -129,6 +129,7 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
     }
     
     // Schedule Musyrif specific notifications
+    NotificationService.cancelAllGuruReminders(); // Pastikan bersih dari role guru
     NotificationService.scheduleMusyrifReminders();
 
     // Check for updates
