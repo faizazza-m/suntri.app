@@ -49,6 +49,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         initials: initials,
         onLogout: () async {
           await globalStateInstance.logout();
+          if (!context.mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );

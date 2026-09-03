@@ -98,6 +98,7 @@ class _GuruDashboardState extends State<GuruDashboard> {
             initials: initials,
             onLogout: () async {
               await globalStateInstance.logout();
+              if (!context.mounted) return;
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
             },
           ),

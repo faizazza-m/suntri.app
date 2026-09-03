@@ -431,6 +431,7 @@ class SUNTRIHeader extends StatelessWidget implements PreferredSizeWidget {
                                 newPassword: newPwToSave,
                               );
                               
+                              if (!context.mounted) return;
                               Navigator.of(context).pop();
                               
                               if (success) {

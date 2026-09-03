@@ -127,6 +127,7 @@ class _WaliDashboardState extends State<WaliDashboard> {
             initials: initials,
             onLogout: () async {
               await globalStateInstance.logout();
+              if (!context.mounted) return;
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
               );

@@ -13,6 +13,7 @@ import '../../widgets/suntri_header.dart';
 import '../../widgets/expandable_text.dart';
 import '../../services/notification_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/update_checker.dart';
 
 class MusyrifDashboard extends StatefulWidget {
   const MusyrifDashboard({super.key});
@@ -129,6 +130,11 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
     
     // Schedule Musyrif specific notifications
     NotificationService.scheduleMusyrifReminders();
+
+    // Check for updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateChecker.checkForUpdate(context);
+    });
   }
 
   // Modals Triggers
@@ -564,16 +570,17 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                         // Ambil data terbaru langsung dari database (jangan arahin ke lokal)
                         await globalStateInstance.syncFromDatabase();
 
+                        if (!context.mounted) return;
                         if (mounted) {
                           setState(() {
                             _lastAbsensiTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} WIB';
                           });
-                          Navigator.pop(context); // close loading
-                          Navigator.pop(context); // close modal
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Absensi massal berhasil disimpan!'), backgroundColor: AppColors.primary),
-                          );
                         }
+                        Navigator.pop(context); // close loading
+                        Navigator.pop(context); // close modal
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Absensi massal berhasil disimpan!'), backgroundColor: AppColors.primary),
+                        );
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
                       child: const Text('Simpan Kehadiran', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -605,6 +612,7 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
         initials: initials,
         onLogout: () async {
           await globalStateInstance.logout();
+          if (!context.mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
@@ -763,19 +771,10 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
           if (isMySetoran || fallbackHalaqoh) {
             final jenis = (s['jenis'] ?? s['type'] ?? '').toString();
             
-            final dari = int.tryParse(s['ayatDari']?.toString() ?? s['ayatFrom']?.toString() ?? '1') ?? 1;
-            final sampai = int.tryParse(s['ayatSampai']?.toString() ?? s['ayatTo']?.toString() ?? '15') ?? 15;
-            
-            int pages = 1;
-            if (sampai >= dari) {
-              pages = ((sampai - dari + 1) / 15).ceil();
-              if (pages < 1) pages = 1;
-            }
-
             if (jenis == 'hafalan_baru') {
-              ziyadahCount += pages;
+              ziyadahCount += 1;
             } else if (jenis == 'murajaah' || jenis.contains('muraja')) {
-              murajaahCount += pages;
+              murajaahCount += 1;
             }
           }
         }
@@ -1079,7 +1078,7 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
           const SizedBox(height: 20),
 
           // Custom Stacked Bar Chart
-          const Text('Tren Kemajuan Hafalan (Halaman)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text('Statistik Setoran Mingguan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
             height: 200,
@@ -1762,7 +1761,8 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                 
                 final newRoom = await globalStateInstance.getOrCreateChatRoom(c['santriId'], c['waliId']);
                 
-                if (mounted) Navigator.pop(context); // close dialog
+                if (!context.mounted) return;
+                Navigator.pop(context); // close dialog
                 
                 if (newRoom.isNotEmpty) {
                   chatData['roomId'] = newRoom['id'];
@@ -1770,7 +1770,8 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                 }
               }
 
-              if (mounted && chatData['roomId'] != null) {
+              if (!context.mounted) return;
+              if (chatData['roomId'] != null) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => MusyrifChatRoomScreen(contact: chatData)),
