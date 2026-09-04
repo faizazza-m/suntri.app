@@ -141,7 +141,7 @@ class NotificationService {
         'Besok $hari: Mengajar $mapel di $kelas pukul $jam',
         tzScheduled,
         const NotificationDetails(android: androidDetails),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
@@ -212,7 +212,7 @@ class NotificationService {
           'Awali hari dengan bismillah, semangat mendampingi para santri MTRQ hari ini!',
           tz.TZDateTime.from(scheduledDT1, tz.local),
           const NotificationDetails(android: androidDetails),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
@@ -232,7 +232,7 @@ class NotificationService {
           'Halaqoh sudah dimulai, jangan lupa untuk mencatat absensi dan setoran santri.',
           tz.TZDateTime.from(scheduledDT2, tz.local),
           const NotificationDetails(android: androidDetails),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
@@ -252,7 +252,7 @@ class NotificationService {
           'Waktunya halaqoh terakhir hari ini! Pastikan semua data setoran dan absensi sudah lengkap, jangan lebih dari abis ashar yakk.',
           tz.TZDateTime.from(scheduledDT3, tz.local),
           const NotificationDetails(android: androidDetails),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );

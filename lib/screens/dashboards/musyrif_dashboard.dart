@@ -14,6 +14,7 @@ import '../../widgets/expandable_text.dart';
 import '../../services/notification_service.dart';
 import '../../services/supabase_service.dart';
 import '../../services/update_checker.dart';
+import '../../constants/quran_data.dart';
 
 class MusyrifDashboard extends StatefulWidget {
   const MusyrifDashboard({super.key});
@@ -141,10 +142,10 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
   // Modals Triggers
   void _openSetoranModal(String? studentId) {
     String? selectedId = studentId;
-    final TextEditingController surahCtrl = TextEditingController();
+    String? selectedSurah;
+    String? selectedJuz;
     final TextEditingController ayatDariCtrl = TextEditingController();
     final TextEditingController ayatSampaiCtrl = TextEditingController();
-    final TextEditingController juzCtrl = TextEditingController();
     String type = 'Ziyadah';
     String kelancaran = 'Sangat Baik';
 
@@ -223,7 +224,26 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                               children: [
                                 const Text('Surah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                                 const SizedBox(height: 6),
-                                TextField(controller: surahCtrl, decoration: const InputDecoration(hintText: 'Al-Baqarah')),
+                                DropdownButtonFormField<String>(
+                                  value: selectedSurah,
+                                  isExpanded: true,
+                                  hint: const Text('Pilih Surah'),
+                                  items: QuranData.surahs.map((s) {
+                                    return DropdownMenuItem<String>(
+                                      value: s['name'] as String,
+                                      child: Text(s['name'] as String, overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setModalState(() {
+                                        selectedSurah = val;
+                                        // Auto-fill juz based on surah
+                                        selectedJuz = QuranData.getJuzForSurah(val).toString();
+                                      });
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -234,7 +254,22 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                               children: [
                                 const Text('Juz', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                                 const SizedBox(height: 6),
-                                TextField(controller: juzCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: '30')),
+                                DropdownButtonFormField<String>(
+                                  value: selectedJuz,
+                                  hint: const Text('Juz'),
+                                  items: List.generate(30, (index) {
+                                    final juz = (index + 1).toString();
+                                    return DropdownMenuItem<String>(
+                                      value: juz,
+                                      child: Text(juz),
+                                    );
+                                  }),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setModalState(() => selectedJuz = val);
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -288,11 +323,11 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            if (selectedId == null || surahCtrl.text.isEmpty || juzCtrl.text.isEmpty) return;
+                            if (selectedId == null || selectedSurah == null || selectedJuz == null) return;
                             final std = _getStudent(selectedId!);
                             
                             // Auto Juz increment calculation
-                            final int newJuz = int.tryParse(juzCtrl.text) ?? std['juz'];
+                            final int newJuz = int.tryParse(selectedJuz!) ?? std['juz'];
                             if (newJuz > std['juz']) {
                               globalStateInstance.updateStudentJuz(std['id'], newJuz);
                             }
@@ -301,10 +336,10 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                               'id': 'set_${DateTime.now().millisecondsSinceEpoch}',
                               'studentName': std['name'],
                               'type': type,
-                              'surah': surahCtrl.text,
+                              'surah': selectedSurah,
                               'ayatDari': ayatDariCtrl.text,
                               'ayatSampai': ayatSampaiCtrl.text,
-                              'juz': juzCtrl.text,
+                              'juz': selectedJuz,
                               'kelancaran': kelancaran,
                               'date': DateTime.now().toString().split(' ')[0],
                             });
@@ -1542,52 +1577,101 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
 
                     // Create table data
                     final List<List<String>> tableData = [
-                      ['Santri', 'Ziyadah (Hal)', 'Murajaah (Hal)'],
+                      ['Santri', 'H', 'S', 'I', 'A', 'Ziyadah (Hal)', 'Murajaah (Hal)'],
                     ];
                     for (var id in studentIds) {
                       final std = _getStudent(id);
                       final name = std['name'];
+                      
+                      final att = std['attendance'] as Map?;
+                      final hadir = att?['hadir']?.toString() ?? '0';
+                      final sakit = att?['sakit']?.toString() ?? '0';
+                      final izin = att?['izin']?.toString() ?? '0';
+                      final alpha = att?['alpha']?.toString() ?? '0';
+
                       final ziyadah = getHal(name, _rekapFilter, 'ziyadah');
                       final murajaah = getHal(name, _rekapFilter, 'murajaah');
-                      tableData.add([name, '$ziyadah', '$murajaah']);
+                      tableData.add([name, hadir, sakit, izin, alpha, '$ziyadah', '$murajaah']);
                     }
 
                     pdf.addPage(
-                      pw.Page(
+                      pw.MultiPage(
                         pageFormat: PdfPageFormat.a4,
-                        build: (pw.Context context) {
-                          return pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Row(
-                                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                                children: [
-                                  pw.Image(logoImage, width: 60, height: 60),
-                                  pw.SizedBox(width: 16),
-                                  pw.Column(
-                                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                    children: [
-                                      pw.Text("Ma'had Tahfidz Rijaalul Quran", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                                      pw.Text('Rekapitulasi Setoran Halaqoh', style: const pw.TextStyle(fontSize: 14)),
-                                      pw.Text('Periode: $_rekapFilter', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-                                    ],
+                        footer: (pw.Context context) {
+                          return pw.Container(
+                            alignment: pw.Alignment.center,
+                            margin: const pw.EdgeInsets.only(top: 20.0),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.center,
+                              children: [
+                                pw.Text(
+                                  "MA'HAD TAHFIDZ RIJAALUL QURAN",
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.grey600,
+                                    letterSpacing: 1.5,
                                   ),
-                                ],
-                              ),
-                              pw.SizedBox(height: 24),
-                              pw.TableHelper.fromTextArray(
-                                context: context,
-                                data: tableData,
-                                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                                headerDecoration: const pw.BoxDecoration(color: PdfColors.teal800),
-                                cellAlignment: pw.Alignment.centerLeft,
-                                cellAlignments: {
-                                  1: pw.Alignment.center,
-                                  2: pw.Alignment.center,
-                                },
-                              ),
-                            ],
+                                ),
+                                pw.SizedBox(height: 4),
+                                pw.Text(
+                                  "Akses Informasi & Perkembangan Santri Real-time",
+                                  style: const pw.TextStyle(
+                                    fontSize: 8,
+                                    color: PdfColors.grey500,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 2),
+                                pw.Text(
+                                  "v1.2.0 • © 2026 e-suntri dev",
+                                  style: const pw.TextStyle(
+                                    fontSize: 8,
+                                    color: PdfColors.grey400,
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
+                        },
+                        build: (pw.Context context) {
+                          return [
+                            pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Row(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                                  children: [
+                                    pw.Image(logoImage, width: 60, height: 60),
+                                    pw.SizedBox(width: 16),
+                                    pw.Column(
+                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                      children: [
+                                        pw.Text("Ma'had Tahfidz Rijaalul Quran", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                                        pw.Text('Rekapitulasi Setoran Halaqoh', style: const pw.TextStyle(fontSize: 14)),
+                                        pw.Text('Periode: $_rekapFilter', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                pw.SizedBox(height: 24),
+                                pw.TableHelper.fromTextArray(
+                                  context: context,
+                                  data: tableData,
+                                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                                  headerDecoration: const pw.BoxDecoration(color: PdfColors.teal800),
+                                  cellAlignment: pw.Alignment.centerLeft,
+                                  cellAlignments: {
+                                    1: pw.Alignment.center,
+                                    2: pw.Alignment.center,
+                                    3: pw.Alignment.center,
+                                    4: pw.Alignment.center,
+                                    5: pw.Alignment.center,
+                                    6: pw.Alignment.center,
+                                  },
+                                ),
+                              ],
+                            ),
+                          ];
                         },
                       ),
                     );
