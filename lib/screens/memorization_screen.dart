@@ -113,9 +113,9 @@ class _MemorizationScreenState extends State<MemorizationScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _searchCtrl,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Cari nama santri...',
-                      prefixIcon: const Icon(Icons.search, color: AppColors.outline),
+                      prefixIcon: Icon(Icons.search, color: AppColors.outline),
                       fillColor: AppColors.surface,
                     ),
                     onChanged: (val) {
@@ -134,9 +134,9 @@ class _MemorizationScreenState extends State<MemorizationScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.outlineVariant.withOpacity(0.5)),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 20,
                             backgroundColor: AppColors.secondaryContainer,
                             child: Text(
@@ -148,8 +148,8 @@ class _MemorizationScreenState extends State<MemorizationScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          const Expanded(
+                          SizedBox(width: 12),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

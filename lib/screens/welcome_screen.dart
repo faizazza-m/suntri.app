@@ -76,8 +76,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     const SizedBox(height: 16),
                     
                     // Subtitle
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40),
                       child: Text(
                         'Aplikasi Manajemen Pesantren Terpadu Ma\'had Tahfidz Rijaalul Quran',
                         textAlign: TextAlign.center,

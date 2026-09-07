@@ -26,7 +26,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
       result = res[i] + result;
       count++;
       if (count == 3 && i != 0) {
-        result = '.' + result;
+        result = '.$result';
         count = 0;
       }
     }
@@ -65,7 +65,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
           );
         },
       ),
-      body: Container(
+      body: SizedBox(
         height: double.infinity,
 
         child: ListenableBuilder(
@@ -578,7 +578,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: setorans.length,
-        separatorBuilder: (ctx, idx) => Divider(color: AppColors.outlineVariant, height: 1),
+        separatorBuilder: (ctx, idx) => const Divider(color: AppColors.outlineVariant, height: 1),
         itemBuilder: (ctx, idx) {
           final s = setorans[idx];
           final type = s['type'] ?? 'Ziyadah';
@@ -665,7 +665,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
           // Header Row
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(bottom: BorderSide(color: AppColors.outlineVariant)),
             ),
@@ -690,7 +690,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: students.length,
-            separatorBuilder: (ctx, idx) => Divider(color: AppColors.outlineVariant, height: 1),
+            separatorBuilder: (ctx, idx) => const Divider(color: AppColors.outlineVariant, height: 1),
             itemBuilder: (ctx, idx) {
               final s = students[idx];
               final att = s['attendance'] ?? {'hadir': 0, 'sakit': 0, 'izin': 0, 'alpha': 0};
@@ -1229,7 +1229,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
           // Table header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(bottom: BorderSide(color: AppColors.outlineVariant)),
             ),
@@ -1245,7 +1245,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
           ...musyrifs.map((m) {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: AppColors.outlineVariant)),
               ),
               child: Row(

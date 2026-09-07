@@ -1274,8 +1274,9 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                         ...groupedFeed[date]!.map((s) {
                           final jenisRaw = (s['jenis'] ?? s['type'] ?? '').toString();
                           String jenisLabel;
-                          if (jenisRaw == 'hafalan_baru') jenisLabel = 'Ziyadah';
-                          else if (jenisRaw == 'murajaah' || jenisRaw.contains('muraja')) jenisLabel = "Muraja'ah";
+                          if (jenisRaw == 'hafalan_baru') {
+                            jenisLabel = 'Ziyadah';
+                          } else if (jenisRaw == 'murajaah' || jenisRaw.contains('muraja')) jenisLabel = "Muraja'ah";
                           else if (jenisRaw == 'tasmi') jenisLabel = "Tasmi'";
                           else jenisLabel = jenisRaw;
                           
@@ -1292,7 +1293,7 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                               trailing: Text('Juz ${s['juz'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     );
                   }).toList(),
@@ -1894,9 +1895,9 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
     if (listAnn.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
-        children: [
-          const SizedBox(height: 48),
-          const Center(
+        children: const [
+          SizedBox(height: 48),
+          Center(
             child: Column(
               children: [
                 Icon(Icons.campaign_outlined, size: 48, color: AppColors.outline),
@@ -1905,7 +1906,7 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
               ],
             ),
           ),
-          const SizedBox(height: 100),
+          SizedBox(height: 100),
         ],
       );
     }

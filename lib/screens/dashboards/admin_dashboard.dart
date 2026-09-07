@@ -681,11 +681,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 length: 4,
                 child: Column(
                   children: [
-                    TabBar(
+                    const TabBar(
                       labelColor: AppColors.primary,
                       unselectedLabelColor: AppColors.outline,
                       indicatorColor: AppColors.primary,
-                      tabs: const [
+                      tabs: [
                         Tab(text: 'Hadir'),
                         Tab(text: 'Sakit'),
                         Tab(text: 'Izin'),

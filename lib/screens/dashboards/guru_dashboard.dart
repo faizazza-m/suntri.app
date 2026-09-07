@@ -504,7 +504,7 @@ class _GuruDashboardState extends State<GuruDashboard> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.class_outlined, size: 12, color: Colors.grey),
+                            const Icon(Icons.class_outlined, size: 12, color: Colors.grey),
                             const SizedBox(width: 4),
                             Text('$className • $room', style: TextStyle(color: Colors.grey.shade700, fontSize: 11, fontWeight: FontWeight.w500)),
                           ],

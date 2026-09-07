@@ -1064,9 +1064,15 @@ class _WaliDashboardState extends State<WaliDashboard> {
     }
     
     List<int> pastStatusesPool = [];
-    for (int i = 0; i < hadir; i++) pastStatusesPool.add(3); // Hadir
-    for (int i = 0; i < izinSakit; i++) pastStatusesPool.add(1); // Izin/Sakit
-    for (int i = 0; i < alpha; i++) pastStatusesPool.add(0); // Alpha
+    for (int i = 0; i < hadir; i++) {
+      pastStatusesPool.add(3); // Hadir
+    }
+    for (int i = 0; i < izinSakit; i++) {
+      pastStatusesPool.add(1); // Izin/Sakit
+    }
+    for (int i = 0; i < alpha; i++) {
+      pastStatusesPool.add(0); // Alpha
+    }
 
     if (pastStatusesPool.length > workingDaysPassed) {
       pastStatusesPool = pastStatusesPool.sublist(0, workingDaysPassed);
@@ -1423,21 +1429,21 @@ class _WaliDashboardState extends State<WaliDashboard> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(16)),
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(Icons.account_balance, color: AppColors.primary, size: 24),
                             SizedBox(width: 12),
                             Text('BSI (Bank Syariah Indonesia)', style: TextStyle(fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        const Text('No. Rekening', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        const Text('7123 4567 8910', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                        const SizedBox(height: 8),
-                        const Text('a.n. Pesantren Rijaalul Quran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        SizedBox(height: 16),
+                        Text('No. Rekening', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('7123 4567 8910', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        SizedBox(height: 8),
+                        Text('a.n. Pesantren Rijaalul Quran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                       ],
                     ),
                   ),

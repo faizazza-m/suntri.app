@@ -193,7 +193,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                       const SizedBox(height: 48),
                       // Smooth circular progress indicator
-                      SizedBox(
+                      const SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(

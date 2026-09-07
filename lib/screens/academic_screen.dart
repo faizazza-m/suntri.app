@@ -274,7 +274,7 @@ class _AcademicScreenState extends State<AcademicScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surfaceContainerLow,
               shape: BoxShape.circle,
             ),
