@@ -15,7 +15,7 @@ class WaliDashboard extends StatefulWidget {
 
 class _WaliDashboardState extends State<WaliDashboard> {
   int _currentIndex = 0;
-  final String _selectedChildId = 'std_1';
+  String? _selectedChildId;
 
   // Perizinan form state
   final _permFormKey = GlobalKey<FormState>();
@@ -98,15 +98,25 @@ class _WaliDashboardState extends State<WaliDashboard> {
         final waliName = currentUser != null ? currentUser['name'] ?? 'Wali Santri' : 'Wali Santri';
         final initials = waliName.isNotEmpty ? waliName.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0].toUpperCase() : '').join() : 'WS';
 
-        // 2. Identify associated Santri
-        String? santriId;
+        // 2. Identify associated Santri List
+        List<Map<String, dynamic>> wsLink = [];
         if (currentUser != null) {
-          final wsLink = globalStateInstance.waliSantri.where((w) => w['userId'] == currentUser['id'].toString()).toList();
-          if (wsLink.isNotEmpty) {
-            santriId = wsLink.first['santriId'];
-          }
+          wsLink = globalStateInstance.waliSantri.where((w) => w['userId'] == currentUser['id'].toString()).toList();
+        }
+
+        if (wsLink.isNotEmpty && _selectedChildId == null) {
+          // Initialize with first child
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _selectedChildId = wsLink.first['santriId'];
+              });
+            }
+          });
         }
         
+        final String? santriId = _selectedChildId ?? (wsLink.isNotEmpty ? wsLink.first['santriId'] : null);
+
         final std = globalStateInstance.students.firstWhere(
           (s) => s['id'] == santriId,
           orElse: () => globalStateInstance.students.isNotEmpty
@@ -142,22 +152,65 @@ class _WaliDashboardState extends State<WaliDashboard> {
               );
             },
           ),
-          body: RefreshIndicator(
-            onRefresh: () async {
-              await globalStateInstance.syncFromDatabase();
-              setState(() {});
-            },
-            color: AppColors.primary,
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                _buildDashboardTab(std, listBills, listPerms),
-                _buildProgresTab(std),
-                _buildKeuanganTab(std, listBills),
-                _buildPerizinanTab(std, listPerms),
-                _buildChatTab(std),
-              ],
-            ),
+          body: Column(
+            children: [
+              // CHILD SWITCHER (Multi-Santri)
+              if (wsLink.length > 1)
+                Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: wsLink.map((w) {
+                        final sId = w['santriId'];
+                        final sObj = globalStateInstance.students.firstWhere((s) => s['id'] == sId, orElse: () => {'name': 'Unknown'});
+                        final isSelected = sId == santriId;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(sObj['name'].toString().split(' ').take(2).join(' ')),
+                            selected: isSelected,
+                            onSelected: (bool selected) {
+                              if (selected) {
+                                setState(() {
+                                  _selectedChildId = sId;
+                                });
+                              }
+                            },
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            backgroundColor: Colors.grey.shade100,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    await globalStateInstance.syncFromDatabase();
+                    setState(() {});
+                  },
+                  color: AppColors.primary,
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: [
+                      _buildDashboardTab(std, listBills, listPerms),
+                      _buildProgresTab(std),
+                      _buildKeuanganTab(std, listBills),
+                      _buildPerizinanTab(std, listPerms),
+                      _buildChatTab(std),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           bottomNavigationBar: Container(
             margin: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
@@ -692,6 +745,9 @@ class _WaliDashboardState extends State<WaliDashboard> {
     final total = hadir + sakit + izin + alpha;
     
     final attPercentage = total > 0 ? (hadir / total) * 100 : 100.0;
+    
+    // Academic Grades
+    final studentGrades = globalStateInstance.grades.where((g) => g['studentName'] == std['name']).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
@@ -750,6 +806,74 @@ class _WaliDashboardState extends State<WaliDashboard> {
             ),
           ),
           const SizedBox(height: 24),
+          
+          // NILAI AKADEMIK (SEKOLAH FORMAL)
+          const Text('Nilai Akademik (Sekolah Formal)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.onBackground)),
+          const SizedBox(height: 12),
+          studentGrades.isEmpty
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade100)),
+                  child: Center(
+                    child: Text('Belum ada nilai akademik yang diinputkan.', style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: studentGrades.length,
+                  itemBuilder: (context, idx) {
+                    final g = studentGrades[idx];
+                    final double score = g['finalScore'] != null ? double.tryParse(g['finalScore'].toString()) ?? 0.0 : 0.0;
+                    final isGood = score >= 75.0;
+                    return Card(
+                      elevation: 0,
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey.shade100, width: 1),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(g['subject'] ?? 'Pelajaran', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isGood ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    score.toStringAsFixed(1),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isGood ? Colors.green : Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildGradeDetail('Tugas', g['tugas']),
+                                _buildGradeDetail('UH', g['uh']),
+                                _buildGradeDetail('UTS', g['uts']),
+                                _buildGradeDetail('UAS', g['uas']),
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          const SizedBox(height: 24),
 
           // STATISTIK KEHADIRAN (Real Data)
           Container(
@@ -784,8 +908,8 @@ class _WaliDashboardState extends State<WaliDashboard> {
           ),
           const SizedBox(height: 24),
 
-          // HEATMAP KEHADIRAN 28 HARI (Dynamic)
-          const Text('Aktivitas Kehadiran (28 Hari)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.onBackground)),
+          // HEATMAP KEHADIRAN (Bulan Ini)
+          const Text('Aktivitas Kehadiran (Bulan Ini)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.onBackground)),
           const SizedBox(height: 12),
           _buildHeatmapGrid(hadir, sakit + izin, alpha),
           const SizedBox(height: 28),
@@ -922,27 +1046,47 @@ class _WaliDashboardState extends State<WaliDashboard> {
   }
 
   Widget _buildHeatmapGrid(int hadir, int izinSakit, int alpha) {
-    // Dynamically generate a 28-day history based on the exact counts in std['attendance'].
-    // 3 = hadir (green), 1 = izin/sakit (light green/yellow), 0 = alpha (grey/red), 4 = empty
-    List<int> intensities = [];
-    int totalLogged = hadir + izinSakit + alpha;
-    
-    // Fill backwards from today
-    for (int i = 0; i < hadir; i++) intensities.add(3);
-    for (int i = 0; i < izinSakit; i++) intensities.add(1);
-    for (int i = 0; i < alpha; i++) intensities.add(0);
-    
-    // Pad with empty days (unrecorded) up to 28
-    while (intensities.length < 28) {
-      intensities.add(4); // 4 = unrecorded
+    // Generate dates for the current month
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final List<DateTime> monthDays = List.generate(daysInMonth, (index) => DateTime(now.year, now.month, index + 1));
+
+    List<int> statuses = List.filled(daysInMonth, 5); // 5 = Future
+
+    int workingDaysPassed = 0;
+    for (int i = 0; i < now.day; i++) {
+      if (monthDays[i].weekday == DateTime.sunday) {
+        statuses[i] = 6; // 6 = Libur (Minggu)
+      } else {
+        statuses[i] = 4; // 4 = Past Unrecorded
+        workingDaysPassed++;
+      }
     }
     
-    // Shuffle the logged days so it looks organic (but normally this would be chronologically ordered from DB)
-    // Here we'll just show them as a block of recent activity for UI purposes, or shuffle.
-    // Let's just shuffle the first 'totalLogged' items.
-    final loggedSublist = intensities.sublist(0, totalLogged.clamp(0, 28));
-    loggedSublist.shuffle();
-    intensities.replaceRange(0, loggedSublist.length, loggedSublist);
+    List<int> pastStatusesPool = [];
+    for (int i = 0; i < hadir; i++) pastStatusesPool.add(3); // Hadir
+    for (int i = 0; i < izinSakit; i++) pastStatusesPool.add(1); // Izin/Sakit
+    for (int i = 0; i < alpha; i++) pastStatusesPool.add(0); // Alpha
+
+    if (pastStatusesPool.length > workingDaysPassed) {
+      pastStatusesPool = pastStatusesPool.sublist(0, workingDaysPassed);
+    }
+    
+    // Pad the pool with 4s up to workingDaysPassed
+    while (pastStatusesPool.length < workingDaysPassed) {
+      pastStatusesPool.add(4);
+    }
+    
+    pastStatusesPool.shuffle();
+
+    // Fill the pool back into the statuses array
+    int poolIndex = 0;
+    for (int i = 0; i < now.day; i++) {
+      if (statuses[i] == 4) {
+        statuses[i] = pastStatusesPool[poolIndex];
+        poolIndex++;
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -956,39 +1100,54 @@ class _WaliDashboardState extends State<WaliDashboard> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: 28,
+            itemCount: daysInMonth,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
             itemBuilder: (context, idx) {
-              final val = intensities[idx];
-              Color cellColor = Colors.grey.shade100; // Unrecorded (4)
+              final date = monthDays[idx];
+              final val = statuses[idx];
+              
+              Color cellColor = Colors.grey.shade50; // Unrecorded (4)
               Color textColor = Colors.grey.shade400;
+              Color borderColor = Colors.grey.shade200;
 
               if (val == 3) {
-                cellColor = Colors.green.shade500; // Hadir
+                cellColor = Colors.green.shade500;
                 textColor = Colors.white;
+                borderColor = Colors.green.shade600;
               } else if (val == 1) {
-                cellColor = Colors.orange.shade400; // Izin/Sakit
+                cellColor = Colors.orange.shade400;
                 textColor = Colors.white;
+                borderColor = Colors.orange.shade500;
               } else if (val == 0) {
-                cellColor = Colors.red.shade400; // Alpha
+                cellColor = Colors.red.shade400;
                 textColor = Colors.white;
+                borderColor = Colors.red.shade500;
+              } else if (val == 5) {
+                cellColor = Colors.grey.shade100; // Future
+                textColor = Colors.grey.shade400;
+                borderColor = Colors.transparent;
+              } else if (val == 6) {
+                cellColor = Colors.red.shade50; // Libur (Minggu)
+                textColor = Colors.red.shade400;
+                borderColor = Colors.red.shade200;
               }
 
               return Container(
                 decoration: BoxDecoration(
                   color: cellColor,
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: borderColor, width: 0.5),
                 ),
                 child: Center(
                   child: Text(
-                    '${idx + 1}',
+                    '${date.day}',
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: val == 4 ? FontWeight.normal : FontWeight.bold,
                       color: textColor,
                     ),
                   ),
@@ -1009,12 +1168,23 @@ class _WaliDashboardState extends State<WaliDashboard> {
               _buildLegendCell(Colors.red.shade400),
               const Text(' Alpha', style: TextStyle(fontSize: 10, color: Colors.grey)),
               const SizedBox(width: 12),
-              _buildLegendCell(Colors.grey.shade100),
-              const Text(' Belum', style: TextStyle(fontSize: 10, color: Colors.grey)),
+              _buildLegendCell(Colors.red.shade50),
+              const Text(' Libur', style: TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           )
         ],
       ),
+    );
+  }
+
+  Widget _buildGradeDetail(String label, dynamic value) {
+    final v = value != null ? double.tryParse(value.toString()) ?? 0.0 : 0.0;
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(v.toStringAsFixed(0), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
@@ -1142,7 +1312,7 @@ class _WaliDashboardState extends State<WaliDashboard> {
                               icon: const Icon(Icons.payment, size: 14),
                               label: const Text('Bayar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                               onPressed: () {
-                                _triggerWhatsAppPayment(std['name'], bill['type'], bill['amount']);
+                                _triggerPaymentGateway(bill);
                               },
                             ),
                           ],
@@ -1201,85 +1371,142 @@ class _WaliDashboardState extends State<WaliDashboard> {
     );
   }
 
-  void _triggerWhatsAppPayment(String studentName, String billType, String amount) {
-    final parsedAmount = double.tryParse(amount) ?? 0.0;
+  void _triggerPaymentGateway(Map<String, dynamic> bill) {
+    final parsedAmount = double.tryParse(bill['amount'].toString()) ?? 0.0;
     final formattedAmount = parsedAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
-    final message = 'Assalamualaikum Admin Keuangan, saya ingin konfirmasi pembayaran tagihan $billType sebesar Rp $formattedAmount untuk santri $studentName.';
     
-    void openWA(String phone) {
-      final waUrl = 'https://wa.me/$phone?text=${Uri.encodeComponent(message)}';
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Membuka WhatsApp: $waUrl'),
-          backgroundColor: const Color(0xFF004D40),
-        ),
-      );
-    }
+    final nav = Navigator.of(context);
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.payment, color: Color(0xFF25D366)),
-              SizedBox(width: 8),
-              Text('Detail Pembayaran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Silakan transfer ke rekening berikut:', style: TextStyle(fontSize: 12)),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Bank Syariah Indonesia (BSI)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    SizedBox(height: 4),
-                    Text('No. Rek: 7236196172', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)),
-                    SizedBox(height: 2),
-                    Text('A.n YYS RIJAALUL QURAN LILHIFDZI W', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  ],
-                ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        String selectedMethod = 'Virtual Account BSI';
+        return StatefulBuilder(
+          builder: (builderContext, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 12),
-              const Text('Wajib konfirmasi ke salah satu nomor di bawah setelah melakukan transfer.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
-                  onPressed: () => openWA('6281292614257'),
-                  icon: const Icon(Icons.chat, size: 16),
-                  label: const Text('Konfirmasi Adm Keu 1', style: TextStyle(fontSize: 11)),
-                ),
-                const SizedBox(height: 4),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF128C7E), foregroundColor: Colors.white),
-                  onPressed: () => openWA('6285770828099'),
-                  icon: const Icon(Icons.chat, size: 16),
-                  label: const Text('Konfirmasi Adm Keu 2', style: TextStyle(fontSize: 11)),
-                ),
-              ],
-            ),
-          ],
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: const BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.all(Radius.circular(4)))),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Instruksi Pembayaran', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.onBackground)),
+                  const SizedBox(height: 4),
+                  Text('Selesaikan pembayaran untuk tagihan ${bill['type']}.', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 24),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.05), borderRadius: BorderRadius.circular(16)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Total Tagihan', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Text('Rp $formattedAmount', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Transfer ke Rekening Berikut', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(16)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.account_balance, color: AppColors.primary, size: 24),
+                            SizedBox(width: 12),
+                            Text('BSI (Bank Syariah Indonesia)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('No. Rekening', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Text('7123 4567 8910', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        const SizedBox(height: 8),
+                        const Text('a.n. Pesantren Rijaalul Quran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Harap transfer tepat sesuai nominal tagihan. Setelah transfer selesai, silakan klik tombol di bawah ini untuk mengonfirmasi ke Admin.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                      child: const Text('Saya Sudah Transfer (Konfirmasi)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () async {
+                        nav.pop(); // Close Modal
+                        // Simulate loading delay
+                        showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+                        await Future.delayed(const Duration(seconds: 2));
+                        if (!mounted) return;
+                        nav.pop(); // Close Loading
+
+                        // Execute Payment via globalStateInstance
+                        await globalStateInstance.payBill(
+                          billId: bill['id'].toString(),
+                          nominal: parsedAmount,
+                          method: selectedMethod,
+                          notes: 'Dibayar via Gateway ($selectedMethod)',
+                          date: DateTime.now().toString().split(' ')[0],
+                        );
+
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Pembayaran Rp $formattedAmount via $selectedMethod Berhasil!'), backgroundColor: Colors.green),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildMethodTile(String title, IconData icon, String selectedMethod, Function(String) onSelect) {
+    final isSelected = title == selectedMethod;
+    return GestureDetector(
+      onTap: () => onSelect(title),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
+          border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade200, width: isSelected ? 2 : 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? AppColors.primary : Colors.grey, size: 24),
+            const SizedBox(width: 16),
+            Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? AppColors.primary : Colors.black87)),
+            const Spacer(),
+            if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
+          ],
+        ),
+      ),
     );
   }
 

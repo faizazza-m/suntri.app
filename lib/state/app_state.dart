@@ -535,19 +535,17 @@ class AppState extends ChangeNotifier {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/mobile/pay-bill'),
-        headers: {'Content-Type': 'application/json'},
+      final response = await http.patch(
+        Uri.parse('$baseUrl/rest/v1/tagihan?id=eq.$billId'),
+        headers: _sbHeaders,
         body: jsonEncode({
-          'billId': billId,
-          'nominal': nominal,
-          'method': method,
-          'notes': notes,
-          'date': date,
+          'status': 'lunas',
         }),
       );
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         await syncFromDatabase();
+      } else {
+        debugPrint('Error paying bill to Supabase: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       debugPrint('Error paying bill: $e');

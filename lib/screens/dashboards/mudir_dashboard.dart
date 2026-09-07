@@ -18,6 +18,21 @@ class _MudirDashboardState extends State<MudirDashboard> {
   int _laporanSubTabIndex = 0;
   String _laporanSearchQuery = '';
 
+  String _formatRp(double amount) {
+    String res = amount.toStringAsFixed(0);
+    String result = '';
+    int count = 0;
+    for (int i = res.length - 1; i >= 0; i--) {
+      result = res[i] + result;
+      count++;
+      if (count == 3 && i != 0) {
+        result = '.' + result;
+        count = 0;
+      }
+    }
+    return 'Rp $result';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -132,16 +147,16 @@ class _MudirDashboardState extends State<MudirDashboard> {
               final hasHafalanToday = globalStateInstance.setorans.any((s) {
                 final student = students.firstWhere((std) => std['name'] == s['studentName'], orElse: () => {});
                 return student.isNotEmpty && 
-                       studentIds.contains(student['id']) && 
-                       s['date'] == todayStr;
+                       studentIds.map((id) => id.toString()).contains(student['id']?.toString()) && 
+                       (s['date']?.toString().startsWith(todayStr) ?? false);
               });
 
-              // Check if any student in this halaqoh has permission today
+              // Check if any student in this halaqoh has permission today (fallback)
               final hasAttendanceToday = globalStateInstance.permissions.any((p) {
                 final student = students.firstWhere((std) => std['name'] == p['studentName'], orElse: () => {});
                 return student.isNotEmpty && 
-                       studentIds.contains(student['id']) && 
-                       p['dateStart'] == todayStr;
+                       studentIds.map((id) => id.toString()).contains(student['id']?.toString()) && 
+                       (p['dateStart']?.toString().startsWith(todayStr) ?? false);
               });
 
               return {
@@ -152,13 +167,70 @@ class _MudirDashboardState extends State<MudirDashboard> {
               };
             }).toList();
 
+            // 4. Financial Calculations
+            final bills = globalStateInstance.bills;
+            double totalPemasukan = 0;
+            double totalTunggakan = 0;
+            int paidBillsCount = 0;
+            int totalBillsCount = bills.length;
+            for (var b in bills) {
+              final amount = (b['amount'] as num?)?.toDouble() ?? 0;
+              if (b['status'] == 'Lunas') {
+                totalPemasukan += amount;
+                paidBillsCount++;
+              } else {
+                totalTunggakan += amount;
+              }
+            }
+            final paymentRate = totalBillsCount > 0 ? (paidBillsCount / totalBillsCount) * 100 : 0.0;
+
+            // 5. Academic Calculations
+            final grades = globalStateInstance.grades;
+            double avgGrade = 0.0;
+            if (grades.isNotEmpty) {
+              avgGrade = grades.map((g) => (g['finalScore'] as num?)?.toDouble() ?? 0).fold(0.0, (a, b) => a + b) / grades.length;
+            }
+            final List<Map<String, dynamic>> academicRisk = [];
+            for (var g in grades) {
+              final score = (g['finalScore'] as num?)?.toDouble() ?? 0;
+              if (score < 75.0) {
+                academicRisk.add({
+                  'name': g['studentName'] ?? 'Unknown',
+                  'subject': g['subject'] ?? 'Mapel',
+                });
+              }
+            }
+            final Map<String, List<String>> studentRiskMap = {};
+            for (var r in academicRisk) {
+              studentRiskMap.putIfAbsent(r['name'], () => []).add(r['subject']);
+            }
+            final List<Map<String, dynamic>> formattedAcademicRisk = studentRiskMap.entries.map((e) {
+              return {
+                'name': e.key,
+                'detail': '${e.value.length} Mapel di bawah KKM (${e.value.take(2).join(', ')}${e.value.length > 2 ? '...' : ''})'
+              };
+            }).toList();
+
+            // 6. Permissions / Perizinan (Santri Keluar)
+            final permissions = globalStateInstance.permissions;
+            int santriKeluar = 0;
+            for (var p in permissions) {
+              if (p['status'] == 'Disetujui' && (p['type'] == 'Pulang' || p['type'] == 'Kegiatan Luar')) {
+                santriKeluar++;
+              }
+            }
+
             return IndexedStack(
               index: _currentTabIndex,
               children: [
-                _buildDashboardTab(totalStudents, halaqohs.length, avgJuz, overallAttendance, sickToday, alphaToday, lowAttendance),
+                _buildDashboardTab(
+                  totalStudents, halaqohs.length, avgJuz, overallAttendance, 
+                  sickToday, alphaToday, lowAttendance,
+                  totalPemasukan, totalTunggakan, paymentRate, avgGrade, formattedAcademicRisk, santriKeluar
+                ),
                 _buildKinerjaTab(musyrifs),
                 _buildLaporanTab(),
-                _buildAnalisisTab(students, globalStateInstance.attendance7Days),
+                _buildAnalisisTab(students, globalStateInstance.attendance7Days, totalPemasukan, totalTunggakan),
                 _buildProfileTab(),
               ],
             );
@@ -224,6 +296,12 @@ class _MudirDashboardState extends State<MudirDashboard> {
     List<Map<String, dynamic>> sickToday,
     List<Map<String, dynamic>> alphaToday,
     List<Map<String, dynamic>> lowAttendance,
+    double totalPemasukan,
+    double totalTunggakan,
+    double paymentRate,
+    double avgGrade,
+    List<Map<String, dynamic>> formattedAcademicRisk,
+    int santriKeluar,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
@@ -255,10 +333,10 @@ class _MudirDashboardState extends State<MudirDashboard> {
             mainAxisSpacing: 12,
             childAspectRatio: 1.5,
             children: [
-              _buildGlassStatCard('Total Santri', '$totalStudents Orang', Icons.people, const Color(0xFF00E5FF)),
-              _buildGlassStatCard('Halaqoh Aktif', '$halaqohsCount Halaqoh', Icons.layers, const Color(0xFFFFB300)),
+              _buildGlassStatCard('Total Pemasukan', _formatRp(totalPemasukan), Icons.account_balance_wallet, const Color(0xFF00E5FF)),
+              _buildGlassStatCard('Tunggakan SPP', _formatRp(totalTunggakan), Icons.money_off, const Color(0xFFFFB300)),
               _buildGlassStatCard('Rerata Hafalan', '${avgJuz.toStringAsFixed(1)} Juz', Icons.menu_book, const Color(0xFFE040FB)),
-              _buildGlassStatCard('Kehadiran Bulanan', '${overallAttendance.toStringAsFixed(1)}%', Icons.check_circle, AppColors.primary),
+              _buildGlassStatCard('Rerata Akademik', avgGrade.toStringAsFixed(1), Icons.school, AppColors.primary),
             ],
           ),
           const SizedBox(height: 24),
@@ -273,7 +351,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
             style: TextStyle(fontSize: 11, color: AppColors.onBackground),
           ),
           const SizedBox(height: 12),
-          _buildEarlyWarningAlerts(sickToday, alphaToday, lowAttendance),
+          _buildEarlyWarningAlerts(sickToday, alphaToday, lowAttendance, formattedAcademicRisk, santriKeluar),
           const SizedBox(height: 24),
         ],
       ),
@@ -665,7 +743,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
     );
   }
 
-  Widget _buildAnalisisTab(List<Map<String, dynamic>> students, Map<String, dynamic> att7Days) {
+  Widget _buildAnalisisTab(List<Map<String, dynamic>> students, Map<String, dynamic> att7Days, double totalPemasukan, double totalTunggakan) {
     // Calculate Hafalan per class
     final Map<String, List<int>> classJuzMap = {};
     for (var s in students) {
@@ -743,9 +821,64 @@ class _MudirDashboardState extends State<MudirDashboard> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          _buildGlassChartCard(
+            title: 'Proporsi Keuangan SPP',
+            subtitle: 'Pemasukan vs Tunggakan (Bulan Ini)',
+            chartWidget: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 120,
+                    child: CustomPaint(
+                      painter: DoughnutChartPainter(
+                        totalPemasukan + totalTunggakan == 0 ? [100] : [
+                          (totalPemasukan / (totalPemasukan + totalTunggakan)) * 100,
+                          (totalTunggakan / (totalPemasukan + totalTunggakan)) * 100,
+                        ],
+                        totalPemasukan + totalTunggakan == 0 ? [Colors.grey] : [AppColors.primary, const Color(0xFFFFB300)],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildLegendItem(AppColors.primary, 'Lunas', _formatRp(totalPemasukan)),
+                      const SizedBox(height: 8),
+                      _buildLegendItem(const Color(0xFFFFB300), 'Menunggak', _formatRp(totalTunggakan)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 100),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String title, String amount) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+            Text(amount, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.onBackground)),
+          ],
+        ),
+      ],
     );
   }
 
@@ -969,8 +1102,10 @@ class _MudirDashboardState extends State<MudirDashboard> {
     List<Map<String, dynamic>> sick,
     List<Map<String, dynamic>> alpha,
     List<Map<String, dynamic>> lowAttendance,
+    List<Map<String, dynamic>> academicRisk,
+    int santriKeluar,
   ) {
-    if (sick.isEmpty && alpha.isEmpty && lowAttendance.isEmpty) {
+    if (sick.isEmpty && alpha.isEmpty && lowAttendance.isEmpty && academicRisk.isEmpty && santriKeluar == 0) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1020,10 +1155,25 @@ class _MudirDashboardState extends State<MudirDashboard> {
           // 3. Low attendance rates
           ...lowAttendance.map((la) => _buildAlertRow(
                 title: 'Kehadiran Kritis (<75%)',
-                desc: 'Kehadiran ${la['name']} sangat rendah (${la['rate']}%). Butuh tindak lanjut.',
-                icon: Icons.trending_down,
-                iconColor: const Color(0xFFE53935),
+                desc: 'Tingkat kehadiran ${la['name']} sangat rendah (${la['rate']}%).',
+                icon: Icons.priority_high,
+                iconColor: const Color(0xFFFFB300),
               )),
+          // 4. Academic Risk
+          ...academicRisk.map((ar) => _buildAlertRow(
+                title: 'Risiko Akademik',
+                desc: '${ar['name']} memiliki ${ar['detail']}.',
+                icon: Icons.school,
+                iconColor: const Color(0xFFE040FB),
+              )),
+          // 5. Santri Keluar Asrama
+          if (santriKeluar > 0)
+            _buildAlertRow(
+              title: 'Santri Di Luar Asrama',
+              desc: 'Saat ini terdapat $santriKeluar santri yang sedang Pulang/Izin keluar asrama.',
+              icon: Icons.exit_to_app,
+              iconColor: AppColors.primary,
+            ),
         ],
       ),
     );
@@ -1351,50 +1501,35 @@ class LineChartPainter extends CustomPainter {
 }
 
 class DoughnutChartPainter extends CustomPainter {
+  final List<double> percentages;
+  final List<Color> colors;
+
+  DoughnutChartPainter(this.percentages, this.colors);
+
   @override
   void paint(Canvas canvas, Size size) {
     final double centerX = size.width / 2;
     final double centerY = size.height / 2;
-    final double radius = size.width / 2 * 0.8;
+    final double radius = (size.width < size.height ? size.width : size.height) / 2 * 0.8;
     const double thickness = 10.0;
 
     final rect = Rect.fromCircle(center: Offset(centerX, centerY), radius: radius);
 
-    final paint1 = Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness
-      ..strokeCap = StrokeCap.round;
-
-    final paint2 = Paint()
-      ..color = const Color(0xFFFFB300)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness
-      ..strokeCap = StrokeCap.round;
-
-    final paint3 = Paint()
-      ..color = const Color(0xFF00B0FF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = thickness
-      ..strokeCap = StrokeCap.round;
-
     double startAngle = -3.14 / 2;
 
-    // Class 10 MIPA/IPS (60%)
-    double sweepAngle1 = 2 * 3.14 * 0.6;
-    canvas.drawArc(rect, startAngle, sweepAngle1 - 0.1, false, paint1);
-    startAngle += sweepAngle1;
+    for (int i = 0; i < percentages.length; i++) {
+      final paint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness
+        ..strokeCap = StrokeCap.round;
 
-    // Class 11 IPS (25%)
-    double sweepAngle2 = 2 * 3.14 * 0.25;
-    canvas.drawArc(rect, startAngle, sweepAngle2 - 0.1, false, paint2);
-    startAngle += sweepAngle2;
-
-    // Others (15%)
-    double sweepAngle3 = 2 * 3.14 * 0.15;
-    canvas.drawArc(rect, startAngle, sweepAngle3 - 0.05, false, paint3);
+      double sweepAngle = 2 * 3.14 * (percentages[i] / 100);
+      canvas.drawArc(rect, startAngle, sweepAngle - 0.1, false, paint);
+      startAngle += sweepAngle;
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
