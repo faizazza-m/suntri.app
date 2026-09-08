@@ -1322,28 +1322,7 @@ class _MudirDashboardState extends State<MudirDashboard> {
   }
 }
 
-// Chart Legend Row helper
-class _ChartLegendRow extends StatelessWidget {
-  final Color color;
-  final String label;
 
-  const _ChartLegendRow({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: AppColors.onBackground, fontSize: 10)),
-      ],
-    );
-  }
-}
 
 // ==================== CUSTOM CHART PAINTERS ====================
 

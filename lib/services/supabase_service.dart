@@ -293,10 +293,6 @@ class SupabaseService {
       final Map<int, String> halaqohMap = {
         for (var h in rawHalaqoh) (h['id'] as int): (h['nama'] ?? '') as String
       };
-      final Map<int, int> halaqohMusyrifMap = {
-        for (var h in rawHalaqoh)
-          (h['id'] as int): (h['musyrif_id'] as int? ?? 0)
-      };
       final Map<int, String> userNameMap = {
         for (var u in rawUsers) (u['id'] as int): (u['name'] ?? '') as String
       };

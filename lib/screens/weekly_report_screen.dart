@@ -279,7 +279,7 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
   @override
   Widget build(BuildContext context) {
     final user = globalStateInstance.currentUser;
-    final teacherName = user?['name']?.toString().toLowerCase() ?? '';
+    
     
     // Get unique classes and subjects from schedules for this teacher
     final mySchedules = globalStateInstance.schedules

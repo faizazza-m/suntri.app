@@ -1276,9 +1276,9 @@ class _MusyrifDashboardState extends State<MusyrifDashboard> {
                           String jenisLabel;
                           if (jenisRaw == 'hafalan_baru') {
                             jenisLabel = 'Ziyadah';
-                          } else if (jenisRaw == 'murajaah' || jenisRaw.contains('muraja')) jenisLabel = "Muraja'ah";
-                          else if (jenisRaw == 'tasmi') jenisLabel = "Tasmi'";
-                          else jenisLabel = jenisRaw;
+                          } else if (jenisRaw == 'murajaah' || jenisRaw.contains('muraja')) { jenisLabel = "Muraja'ah"; }
+                          else if (jenisRaw == 'tasmi') { jenisLabel = "Tasmi'"; }
+                          else { jenisLabel = jenisRaw; }
                           
                           final gradeRaw = (s['grade'] ?? s['kelancaran'] ?? '').toString();
 

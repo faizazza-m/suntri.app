@@ -29,34 +29,6 @@ class _WaliDashboardState extends State<WaliDashboard> {
   String? _activeChatContact; // 'musyrif', 'walikelas', 'admin'
   final _chatTextController = TextEditingController();
   final _chatScrollController = ScrollController();
-  final List<Map<String, dynamic>> _chatSessions = [
-    {
-      'id': 'musyrif',
-      'name': 'Ust. Ahmad Fauzi',
-      'role': 'Musyrif Halaqoh',
-      'avatar': 'AF',
-      'lastMsg': 'Wa\'alaikumsalam, perkembangan hafalan ananda sangat baik...',
-      'unread': 1,
-      'messages': [
-        {'sender': 'other', 'text': 'Assalamualaikum Ayah/Bunda.', 'time': '08:30'},
-        {'sender': 'wali', 'text': 'Wa\'alaikumsalam Ustadz, bagaimana hafalan anak saya hari ini?', 'time': '09:00'},
-        {'sender': 'other', 'text': 'Wa\'alaikumsalam, perkembangan hafalan ananda sangat baik.', 'time': '09:05'},
-      ]
-    },
-    {
-      'id': 'admin',
-      'name': 'Layanan Admin Suntri',
-      'role': 'Admin Keuangan & Umum',
-      'avatar': 'AD',
-      'lastMsg': 'Baik bunda, pembayaran SPP sudah kami verifikasi.',
-      'unread': 0,
-      'messages': [
-        {'sender': 'wali', 'text': 'Saya sudah transfer untuk tagihan SPP.', 'time': '2 hari lalu'},
-        {'sender': 'other', 'text': 'Baik bunda, pembayaran SPP sudah kami verifikasi. Terima kasih.', 'time': '2 hari lalu'},
-      ]
-    }
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -1491,30 +1463,7 @@ class _WaliDashboardState extends State<WaliDashboard> {
     );
   }
 
-  Widget _buildMethodTile(String title, IconData icon, String selectedMethod, Function(String) onSelect) {
-    final isSelected = title == selectedMethod;
-    return GestureDetector(
-      onTap: () => onSelect(title),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
-          border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade200, width: isSelected ? 2 : 1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: isSelected ? AppColors.primary : Colors.grey, size: 24),
-            const SizedBox(width: 16),
-            Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? AppColors.primary : Colors.black87)),
-            const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
   void _showInvoiceDialog(BuildContext context, Map<String, dynamic> bill) {
     showDialog(
